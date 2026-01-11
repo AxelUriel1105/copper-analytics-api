@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # Servicio 1: Base de datos
   db:
     image: postgres:15
     container_name: copper_postgres_container
@@ -12,3 +13,22 @@ services:
       - "${DB_PORT}:5432"
     volumes:
       - ./pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  # Servicio 2: Script de python
+  etl_script:
+    build: .  
+    container_name: copper_etl_python
+    depends_on:
+      db:
+        condition: service_healthy # Espera a que la BD esté lista antes de correr
+    environment:
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_PORT: 5432 # Puerto interno de docker
+      # El host ya no es localhost, es el nombre del servicio 'db'
+      DB_HOST: db
